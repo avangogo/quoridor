@@ -1,0 +1,12 @@
+[package]
+name = "corridor"
+version = "0.1.0"
+authors = ["funam"]
+
+[dependencies]
+relm = "0.12.0"
+gtk = { version = "0.3.0", features = ["v3_22"] }
+gdk = "0.7.0"
+relm-derive = "0.12.0"
+cairo-rs = "0.3.0"
+rand = "0.4.2"
