@@ -1,5 +1,8 @@
 use std::ops::Add;
-use std::cmp::min;
+use std::cmp::{min,max};
+use std::str;
+use errors::*;
+use errors::ParseMoveError::*;
 use std::fmt;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
@@ -35,28 +38,88 @@ pub struct Maze {
     middle: Vec<Vec<bool>>
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Copy, Clone, Msg)]
 pub enum Move {
     MovePawn(Cell),
     BuildWall(Wall),
 }
 
+
+
+
 use self::Dir::*;
 use self::Orientation::*;
 use self::Move::*;
+
+impl fmt::Display for Orientation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self { 
+            Horizontal => write!(f, "H"),
+            Vertical   => write!(f, "V"),
+        }}
+}
+
+impl fmt::Display for Wall {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{} {} {}]", self.x, self.y, self.orientation)
+    }
+}
+
+impl fmt::Display for Cell {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             MovePawn(cell) => write!(f, "Move {} {}", cell.x, cell.y),
-            BuildWall(wall) => match wall.orientation {
-                Horizontal => write!(f, "Wall {} {} H", wall.x, wall.y),
-                Vertical   => write!(f, "Wall {} {} V", wall.x, wall.y),
-            }
+            BuildWall(wall) =>
+                write!(f, "Wall {} {} {}", wall.x, wall.y, wall.orientation)
         }
     }
 }
 
+impl str::FromStr for Move {
+    type Err = ParseMoveError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let vec : Vec<_> = s.split_whitespace().collect();
+        if vec.len() == 0 { return Err(EmptyLine) };
+        let x : usize = vec[1].parse().map_err(|e| ParseIntError(e))?;
+        let y : usize = vec[2].parse().map_err(|e| ParseIntError(e))?;
+        match vec[0] {
+            "Move" => {
+                if vec.len() != 3
+                { return Err(NotEnoughParams(2, vec.len()-1)) } 
+                Ok( MovePawn( Cell {x: x, y: y} ) )
+            }
+            "Wall" => {
+                if vec.len() != 4
+                { return Err(NotEnoughParams(3, vec.len()-1)) };
+                let o = match vec[3] {
+                    "V" => Vertical,
+                    "H" => Horizontal,
+                    x => return Err(InvalidOrientation(String::from(x))),
+                };
+                Ok( BuildWall( Wall {x: x, y: y, orientation: o} ) )
+            }
+            x => Err(BadFirstWord(String::from(x)))
+        }
+    }
+}
+
+impl Wall {
+    pub fn intersect(&self, w: Self) -> bool {
+        let w1 = *self;
+        match ( max(w.x, w1.x) - min(w.x, w1.x), max(w.y, w1.y) - min(w.y, w1.y)) {
+            (0, 0) => true,
+            (1, 0) => w.orientation == Horizontal && w1.orientation == Horizontal,
+            (0, 1) => w.orientation == Vertical && w1.orientation == Vertical,
+            _ => false,
+        }
+    }
+}
 
 pub const ALL_DIR: [Dir; 4] = [ Up, Down, Left, Right ];
 

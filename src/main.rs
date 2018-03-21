@@ -7,6 +7,7 @@ pub mod window;
 pub mod player;
 pub mod player_example;
 pub mod draw;
+pub mod errors;
 
 fn main() {
     window::main();

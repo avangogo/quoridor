@@ -3,6 +3,8 @@ use types::*;
 use types::Move::*;
 use types::Orientation::*;
 use std::collections::VecDeque;
+use errors::*;
+use errors::MoveError::*;
 
 pub struct Board {
     pub size: usize,
@@ -66,6 +68,7 @@ impl Board {
         res
     }
 
+    
     pub fn dijkstra<I>(&self, s: Cell, t: I) -> Option<Vec<Cell>>
         where I : IntoIterator<Item = Cell>
     {
@@ -99,19 +102,22 @@ impl Board {
             }
         }
     }
-
     
     // Inefficient and dirty
-    fn non_bloking_wall(&mut self, w: Wall) -> bool {
+    fn wall_block_player(&mut self, w: Wall, i: usize) -> bool {
+        assert!( i==0 || i==1 );
         let n = self.size;
+        let row = (0..n).map(|k| Cell { x:k, y:(1-i)*(n - 1) } );
+        self.maze.build(w);
+        let path = self.dijkstra(self.pawns[i], row);
+        self.maze.unbuild(w);
+        path == None
+    }
+    
+    fn non_bloking_wall(&mut self, w: Wall) -> bool {
         for i in 0..2 {
-            let row = (0..n).map(|k| Cell { x:k, y:(1-i)*(n - 1) } );
-            self.maze.build(w);
-            let path = self.dijkstra(self.pawns[i], row);
-            self.maze.unbuild(w);
-            if path == None {
-                return false
-            }}
+            if self.wall_block_player(w, i) { return false }
+        }
         return true
     }
 
@@ -153,26 +159,32 @@ impl Board {
     fn is_empty(&self, c: Cell) -> bool {
         self.pawns.iter().all(|&x| x != c)
     }
-
-    pub fn apply_move(&mut self, mov: Move){
+    
+    pub fn apply_move(&mut self, mov: Move) -> Result<(), MoveError> {
         match mov {
             MovePawn(cell) => {
                 let cell_pawn = self.pawns[self.active_player];
                 if !self.maze.adjacent(cell, cell_pawn) {
-                    panic!("Impossible move: {:?} is not accessible from {:?}",
-                           cell, cell_pawn);
+                    return Err(NonAdjacent(cell, cell_pawn));
                 }
                 if !self.is_empty(cell) {
-                    panic!("Impossible move: {:?} is not empty", cell);
+                    return Err(NonEmpty);
                 }
                 self.pawns[self.active_player] = cell;
             },
             BuildWall(wall) => {
                 if self.wall_left[self.active_player] == 0 {
-                    panic!("Impossible to build: No wall left.");
+                    return Err(OutOfWall);
                 }
-                if !self.maze.can_build(wall) {
-                    panic!("Impossible to build {:?}", wall);
+                for &w in self.walls.iter(){
+                    if wall.intersect(w) {
+                        return Err(BlockedByWall(w))
+                    }
+                }
+                for i in 0..2 {
+                    if self.wall_block_player(wall, i){
+                        return Err(BlockPlayer(i))
+                    }
                 }
                 self.wall_left[self.active_player] -= 1;
                 self.maze.build(wall);
@@ -180,6 +192,7 @@ impl Board {
             },
         }
         self.next_player();
+        Ok( () )
     }
 }
 

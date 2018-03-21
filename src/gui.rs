@@ -16,8 +16,6 @@ use types::Move::*;
 use types::Orientation::*;
 use draw;
 
-//use self::relm_derive::*;
-
 #[derive(Msg)]
 pub enum Msg {
     MouseOn( (f64, f64) ),
@@ -80,7 +78,6 @@ pub struct BoardView {
     model: Rc<RefCell<Model>>,
 }
 
-//
 impl Update for BoardView {
 
     type Model = Model;
@@ -93,7 +90,6 @@ impl Update for BoardView {
     
     fn update(&mut self, event: Self::Msg){
         let mut model = self.model.borrow_mut();
-        model.raw_update();// FIXME
         match event {
             Msg::SelectMove( _ ) => { () }
             Msg::MouseOn( (x, y) ) => {
@@ -109,7 +105,7 @@ impl Update for BoardView {
                 }
             },
             Msg::Update => {
-//                model.raw_update(); FIXME
+                model.raw_update();
                 self.drawing_area.queue_draw();
             },
         };
@@ -124,6 +120,8 @@ impl Widget for BoardView {
     }
 
     fn view(relm: &Relm<Self>, model0: Self::Model) -> Self {
+
+        
         let model = Rc::new(RefCell::new(model0));
         let drawing_area = DrawingArea::new();
         
@@ -175,7 +173,7 @@ impl Widget for BoardView {
             }
             Inhibit(false)   
         });
-
+        
         drawing_area.show_all();
 
         BoardView {
