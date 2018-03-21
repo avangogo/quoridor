@@ -34,7 +34,7 @@ impl Board {
 
     pub fn winner(&self) -> Option<usize> {
         for (i, c) in self.pawns.iter().enumerate() {
-            if c.y == (1-i) * self.size {
+            if c.y == (1-i) * (self.size - 1) {
                 return Some(i)
             }
         }

@@ -21,7 +21,7 @@ while True:
     i += 1
 
     pos = x[i % 2]
-    print("A {} {}".format(pos[0], pos[1]))
+    print("Move {} {}".format(pos[0], pos[1]))
     sys.stdout.flush()
 
     opponent_move = input()
