@@ -121,7 +121,7 @@ impl Widget for BoardView {
 
     fn view(relm: &Relm<Self>, model0: Self::Model) -> Self {
 
-        
+        let n = model0.size;
         let model = Rc::new(RefCell::new(model0));
         let drawing_area = DrawingArea::new();
         
@@ -130,7 +130,8 @@ impl Widget for BoardView {
                                  EventMask::POINTER_MOTION_MASK |
                                  EventMask::SCROLL_MASK).bits() as i32);        
 
-        drawing_area.set_size_request(500, 500);
+        let drawing_area_size = draw::required_size(n) as i32;
+        drawing_area.set_size_request(drawing_area_size, drawing_area_size);
 
         connect!(relm, drawing_area,
                  connect_motion_notify_event(_,e),
@@ -160,6 +161,8 @@ impl Widget for BoardView {
             for i in 0..2 {
                 draw::pawn(context, board.pawns[i], i, false);
             }
+
+            draw::wall_count(context,n, board.wall_left[0], board.wall_left[1]);
             
             if let Some(mov) = model.selected_move {
                 match mov { 

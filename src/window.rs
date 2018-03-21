@@ -3,8 +3,10 @@ extern crate gdk;
 extern crate relm;
 extern crate glib;
 extern crate futures;
-use self::gtk::{Window,WidgetExt,ContainerExt,GtkWindowExt,Button,Label,
-                WindowType,Inhibit,ButtonExt};
+use self::gtk::{Window,WidgetExt,ContainerExt,GtkWindowExt,Label,
+                WindowType,Inhibit,LabelExt,
+                Separator};
+//use self::gtk::{Button,ButtonExt};
 use std::sync::{Arc,Mutex};
 use board::*;
 use types::*;
@@ -68,7 +70,7 @@ impl Widget for Win {
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
         // Create the view using the normal GTK+ method calls.
-        let vbox = gtk::Box::new(self::gtk::Orientation::Vertical, 0);
+        let vbox = gtk::Box::new(self::gtk::Orientation::Vertical, 10);
         
         let game = Arc::new(Mutex::new(Board::new(BOARD_SIZE, WALLS)));
 
@@ -94,16 +96,18 @@ impl Widget for Win {
             game: game.clone(),
             board_stream: board.stream().clone(),
         };
-        
+
         let game_widget = vbox.add_widget::<GameWidget,_>(relm, game_param);
         
         let window = Window::new(WindowType::Toplevel);
         window.set_title("Corridor");
         
         // Update button
-        let up_button = Button::new_with_label("Update");
-        vbox.add(&up_button);
-        
+//        let up_button = Button::new_with_label("Update");
+//        vbox.add(&up_button);
+//      connect!(up_button, connect_clicked(_), board, Msg::Update);
+  
+        vbox.add(&Separator::new(self::gtk::Orientation::Horizontal));
         let label = Label::new(argv_string);
         vbox.add(&label);
         
@@ -115,7 +119,6 @@ impl Widget for Win {
         // Messages.
         connect!(relm, window, connect_delete_event(_, _),
                  return (Some(WinMsg::Quit), Inhibit(false)));
-        connect!(up_button, connect_clicked(_), board, Msg::Update);
       
         Win {
             window: window,
@@ -128,7 +131,9 @@ impl Widget for Win {
 // ============
 struct GameWidget {
     container: gtk::Box,
-    model: GameModel,   
+    model: GameModel,
+    label: Label,
+//    text_view: TextView,
 }
 
 struct GameModel {
@@ -148,7 +153,15 @@ impl Update for GameWidget {
     }
 
     fn update(&mut self, _event: Move) {
-        //format!("{}", event)
+        // Write Turn of..
+        let i = self.model.game.lock().unwrap().active_player;
+        self.label.set_text(&format!("Turn of {}",
+                                     &self.model.players[i].name()[..]));
+        // Print the move
+//        let buffer = self.text_view.get_buffer().unwrap(); 
+//        let mut test_iter = buffer.get_bounds().0; 
+//        buffer.insert(&mut test_iter, &format!("{}\n", event)[..]);
+        // Update the board
         self.model.board_stream.emit(Msg::Update);
     }
 }
@@ -161,9 +174,21 @@ impl Widget for GameWidget {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
-        let container = gtk::Box::new(self::gtk::Orientation::Vertical, 0);
-        container.show();
+        let container = gtk::Box::new(self::gtk::Orientation::Vertical, 10);
+        let a = format!(
+            "<span foreground=\"blue\">{}</span> vs <span foreground=\"red\">{}</span>",
+            model.players[0].name(),
+            model.players[1].name());
+        let l = Label::new(None);
+        l.set_markup(a.as_str());
+        container.add(&l);
+        let label = Label::new(None);
 
+//        let hbox = gtk::Box::new(self::gtk::Orientation::Vertical, 0)
+        
+        // label
+        container.add(&label);
+        container.show();
                         
         let (tx, rx) = mpsc::channel(100);
 
@@ -184,8 +209,10 @@ impl Widget for GameWidget {
         
             
         GameWidget {
+            label: label,
             container: container,
             model: model,
+  //          text_view: text_view,
         }
     }
 }

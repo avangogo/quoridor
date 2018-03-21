@@ -5,13 +5,17 @@ use types;
 use types::Orientation::{Horizontal, Vertical};
 
 // Graphical params
-const X0 : f64 = 10.;
-const Y0 : f64 = 10.;
+const X0 : f64 = 20.;
+const Y0 : f64 = 20.;
 const C : f64 = 50.;
 const WALL_WIDTH : f64 = 3.;
 
 // Controller
 pub const THRESHOLD : f64 = 0.25;
+
+pub fn required_size(board_size: usize) -> f64 {
+    ((board_size) as f64) * C + 2. * X0
+}
 
 // Geometry
 fn cell_coord(i: usize, j: usize) -> (f64, f64) {
@@ -71,4 +75,19 @@ pub fn pawn(context: &Context, cell: types::Cell, player: usize, shadow: bool) {
     //    self::cell(context, cell);
     context.arc(cx, cy, C*0.3, 0., 2.*3.14);
     context.fill();
+}
+
+pub fn wall_count(context: &Context, board_size: usize, c0: usize, c1: usize){
+    let n = board_size as f64;
+    let cx = X0 + n*C/2.;
+    let cy = Y0 + n*C + 15.;
+    let grad = LinearGradient::new(cx-10., cy, cx+10., cy);
+    grad.add_color_stop_rgb(0., 0., 0., 1.);
+    grad.add_color_stop_rgb(0.4, 0., 0., 0.);
+    grad.add_color_stop_rgb(0.6, 0., 0., 0.);
+    grad.add_color_stop_rgb(1., 1., 0., 0.);
+    context.set_source(&grad);
+    context.set_font_size(14.);
+    context.move_to(cx-22., cy);
+    context.show_text(format!("{}  /  {}", c0, c1).as_str());
 }
