@@ -1,11 +1,13 @@
 extern crate futures;
 
+use std::{thread, time};
 use types::Move;
 use std::io::*;
 use std::ffi::OsStr;
 use std::process::*;
 use std::error::Error;
 use std::result::Result;
+use std::sync::{Arc,Mutex};
 //use errors::*;
 use errors::PlayerError::*;
 
@@ -94,4 +96,36 @@ impl Player for ProgramPlayer {
             },
             Err(e) => Err(From::from(e)),
         }}
+}
+
+//======= Manual player
+
+impl PlayerLauncher for Arc<Mutex<Option<Move>>> {
+    fn name(&self) -> String {
+        String::from("You")
+    }
+    
+    fn start(&self, _param: GameParam) -> Box<Player> {
+        Box::new(self.clone())
+    }
+
+    fn box_clone(&self) -> Box<PlayerLauncher> {
+        Box::new(self.clone())
+    }
+}
+
+impl Player for Arc<Mutex<Option<Move>>> {
+    
+    fn input(&mut self, _m: Move) {
+        ();
+    }
+
+    fn wait_for_output(&mut self) -> MyResult<Move> {
+        loop {
+            if let Some(m) = *self.lock().unwrap() {
+                return Ok(m)
+            }
+            thread::sleep(time::Duration::from_millis(50));
+        }
+    }
 }

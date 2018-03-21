@@ -10,7 +10,7 @@ use self::gtk::{Window,WidgetExt,ContainerExt,GtkWindowExt,Label,
 use std::sync::{Arc,Mutex};
 use board::*;
 use types::*;
-use gui::*;
+use board_view::*;
 use self::relm::*;
 use self::relm::{Widget,Update,Component};
 use self::futures::{Sink,Future};
@@ -73,8 +73,10 @@ impl Widget for Win {
         let vbox = gtk::Box::new(self::gtk::Orientation::Vertical, 10);
         
         let game = Arc::new(Mutex::new(Board::new(BOARD_SIZE, WALLS)));
-
-        let board = vbox.add_widget::<BoardView,_>(relm, game.clone());
+        let clicked = Arc::new(Mutex::new(None));
+        
+        let board_param = (game.clone(), clicked.clone());
+        let board = vbox.add_widget::<BoardView,_>(relm, board_param);
 
         // === params ===
         let argv : Vec<String> = env::args().collect();
@@ -82,7 +84,7 @@ impl Widget for Win {
         
         // =========== Players =======
         let mut players : [Box<PlayerLauncher>; 2] =
-            [ Box::new(Tom), Box::new(Tom) ];
+            [ Box::new(Tom), Box::new(clicked.clone()) ];
         
         for i in 0..2 {
             if argv.len() > i+1 {
